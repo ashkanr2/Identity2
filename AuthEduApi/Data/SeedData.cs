@@ -48,6 +48,21 @@ public static class SeedData
                 await userManager.AddToRoleAsync(admin, AppRoles.Admin);
         }
 
+        var existProduct = db.Products.Any();
+
+        if (!existProduct)
+        {
+           var productList = new List<Products>
+                 {
+                     new Products { Name = "Product 1", Description = "Description for Product 1", Price = 10.99m },
+                     new Products { Name = "Product 2", Description = "Description for Product 2", Price = 19.99m },
+                     new Products { Name = "Product 3", Description = "Description for Product 3", Price = 5.49m },
+                     new Products { Name = "Product 4", Description = "Description for Product 4", Price = 15.00m },
+                     new Products { Name = "Product 5", Description = "Description for Product 5", Price = 7.25m }
+                 };
+            db.Products.AddRange(productList);
+            db.SaveChanges();
+        }
         Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         Console.WriteLine("✅  Seed Data OK");
         Console.WriteLine($"👑  Admin → {adminEmail} / {adminPassword}");
