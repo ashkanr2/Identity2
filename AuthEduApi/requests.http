@@ -1,0 +1,207 @@
+### ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+### 🔐 Auth Edu API — فایل تست کامل
+### ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+### برای استفاده: Extension "REST Client" رو در VS Code نصب کن
+### سپس روی "Send Request" کلیک کن
+### ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+@base = https://localhost:7001/api
+
+### ════════════════════════════════════════════════
+### STEP 1 - ثبت‌نام کاربر جدید
+### بعد از ثبت‌نام، IsApproved = false
+### ════════════════════════════════════════════════
+
+# @name registerUser
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{
+  "userName": "ali",
+  "email":    "ali@test.com",
+  "password": "pass123",
+  "fullName": "Ali Ahmadi"
+}
+
+###
+
+### ════════════════════════════════════════════════
+### STEP 2 - لاگین کاربر عادی
+### توکن دریافت میکنی ولی is_approved:false داره
+### ════════════════════════════════════════════════
+
+# @name loginUser
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email":    "ali@test.com",
+  "password": "pass123"
+}
+
+###
+
+### ════════════════════════════════════════════════
+### STEP 3 - بررسی Claims توکن (قبل از تایید)
+### توکن رو از STEP 2 کپی کن اینجا
+### ════════════════════════════════════════════════
+
+@userToken = PASTE_USER_TOKEN_HERE
+
+GET {{base}}/auth/me
+Authorization: Bearer {{userToken}}
+
+###
+
+### ════════════════════════════════════════════════
+### STEP 4 - تلاش برای دسترسی (قبل از تایید ادمین)
+### انتظار: 403 Forbidden
+### چون is_approved:false در توکنه
+### ════════════════════════════════════════════════
+
+GET {{base}}/products
+Authorization: Bearer {{userToken}}
+
+###
+
+### ════════════════════════════════════════════════
+### STEP 5 - لاگین ادمین
+### ════════════════════════════════════════════════
+
+# @name loginAdmin
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email":    "admin@edu.com",
+  "password": "admin123"
+}
+
+###
+
+@adminToken = PASTE_ADMIN_TOKEN_HERE
+
+### ════════════════════════════════════════════════
+### STEP 6 - لیست کاربران (فقط ادمین)
+### userId کاربر رو از اینجا کپی کن
+### ════════════════════════════════════════════════
+
+GET {{base}}/admin/users
+Authorization: Bearer {{adminToken}}
+
+###
+
+### ════════════════════════════════════════════════
+### STEP 7 - تایید کاربر توسط ادمین
+### userId رو از STEP 6 بگیر و جایگزین کن
+### ════════════════════════════════════════════════
+
+@userId = PASTE_USER_ID_HERE
+
+POST {{base}}/admin/approve/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+###
+
+### ════════════════════════════════════════════════
+### STEP 8 - لاگین مجدد کاربر
+### 💡 نکته: باید مجدداً لاگین کنه!
+###    توکن قدیمی هنوز is_approved:false داره
+###    این ذات Stateless بودن JWT هست
+### ════════════════════════════════════════════════
+
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email":    "ali@test.com",
+  "password": "pass123"
+}
+
+###
+
+@newUserToken = PASTE_NEW_USER_TOKEN_HERE
+
+### ════════════════════════════════════════════════
+### STEP 9 - الان دسترسی داره! (بعد از تایید)
+### انتظار: 200 OK
+### ════════════════════════════════════════════════
+
+GET {{base}}/products
+Authorization: Bearer {{newUserToken}}
+
+###
+
+### ════════════════════════════════════════════════
+### STEP 10 - تلاش برای Pro Feature (قبل از ارتقا)
+### انتظار: 403 Forbidden
+### چون is_pro:false هست
+### ════════════════════════════════════════════════
+
+GET {{base}}/products/pro
+Authorization: Bearer {{newUserToken}}
+
+###
+
+### ════════════════════════════════════════════════
+### STEP 11 - ارتقا به Pro توسط ادمین
+### ════════════════════════════════════════════════
+
+POST {{base}}/admin/upgrade-pro/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+###
+
+### ════════════════════════════════════════════════
+### STEP 12 - لاگین مجدد + Pro Feature
+### بعد از لاگین مجدد، توکن جدید is_pro:true داره
+### ════════════════════════════════════════════════
+
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email":    "ali@test.com",
+  "password": "pass123"
+}
+
+###
+
+@proToken = PASTE_PRO_TOKEN_HERE
+
+GET {{base}}/products/pro
+Authorization: Bearer {{proToken}}
+
+###
+
+### ════════════════════════════════════════════════
+### BONUS - سایر endpoint‌ها برای تست
+### ════════════════════════════════════════════════
+
+### دسترسی عمومی (بدون توکن)
+GET {{base}}/products/public
+
+###
+
+### فقط لاگین (بدون تایید)
+GET {{base}}/products/auth-only
+Authorization: Bearer {{userToken}}
+
+###
+
+### ساخت محصول (فقط ادمین)
+POST {{base}}/products
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name":        "محصول جدید",
+  "price":       999000,
+  "description": "توضیحات محصول"
+}
+
+###
+
+### لغو تایید کاربر
+POST {{base}}/admin/revoke/{{userId}}
+Authorization: Bearer {{adminToken}}
